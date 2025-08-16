@@ -14,6 +14,7 @@
         <module>hashmap</module>
         <module>list</module>
         <module>aqs-lock</module>
+        <module>spring-mini</module>
     </modules>
 
     <properties>
