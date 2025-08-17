@@ -3,6 +3,7 @@ package com.richal.learn;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.file.FileVisitResult;
@@ -16,94 +17,78 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 🏢 ApplicationContext - Spring IOC容器的核心实现
+ * 🏢 ApplicationContext - Spring IOC容器核心
  * 
- * 📚 核心职责：
- * 这是整个MiniSpring框架的心脏，负责管理Bean的完整生命周期：
- * 1. 🔍 发现：扫描指定包下的@Component注解类
- * 2. 📋 注册：将类的元数据封装为BeanDefinition并注册
- * 3. 🏭 创建：根据BeanDefinition实例化Bean对象
- * 4. 💉 注入：为Bean的@Autowired字段注入依赖
- * 5. 🚀 初始化：执行Bean的@PostConstruct初始化方法
- * 6. 📦 管理：提供获取Bean的各种方式
+ * 📋 职责：管理Bean生命周期
+ * 1. 扫描@Component类
+ * 2. 注册Bean定义
+ * 3. 创建Bean实例
+ * 4. 注入依赖
+ * 5. 初始化Bean
+ * 6. 提供Bean获取方法
  * 
- * 🎯 IOC(控制反转)原理：
- * - 传统方式：对象自己创建和管理依赖 → 紧耦合
- * - IOC方式：容器负责创建对象和注入依赖 → 松耦合
- * - 好处：代码更简洁、易测试、易扩展、符合开放封闭原则
+ * 🔄 流程：扫描 -> 注册 -> 创建 -> 注入 -> 初始化
  * 
- * 🔄 容器启动流程：
- * 1. 📦 包扫描(scanPackage) → 发现所有.class文件
- * 2. 🔍 组件筛选(scanCreate) → 过滤出@Component标记的类
- * 3. 📋 元数据封装(wrapper) → 创建BeanDefinition对象
- * 4. 🏭 Bean创建(createBean) → 实例化Bean并执行初始化
+ * 💡 Spring框架核心设计思想：
+ * - 控制反转(IoC)：将对象的创建和依赖管理交给容器
+ * - 依赖注入(DI)：通过反射自动注入对象间的依赖关系
+ * - 生命周期管理：提供完整的Bean生命周期钩子
+ * - 单例管理：确保每个Bean在容器中只有一个实例
+ * - 延迟加载：支持按需创建Bean，提高启动性能
  * 
- * 💡 设计模式应用：
- * - 工厂模式：ApplicationContext是创建Bean的工厂
- * - 单例模式：IOC容器中的Bean默认都是单例
- * - 观察者模式：Bean生命周期的各个回调点
- * - 策略模式：不同的Bean获取策略(按名称、按类型等)
- * 
- * 🚨 当前版本限制：
- * - 不支持循环依赖处理
- * - 不支持@Autowired依赖注入（只实现了框架，未完成注入逻辑）
- * - 不支持Bean的scope配置（默认单例）
- * - 不支持懒加载(lazy-init)
+ * 🔄 Spring容器启动的完整流程：
+ * - 阶段1：包扫描 - 发现所有@Component标记的类
+ * - 阶段2：Bean定义注册 - 将类信息封装为BeanDefinition
+ * - 阶段3：后处理器初始化 - 优先创建BeanPostProcessor
+ * - 阶段4：Bean实例化 - 创建所有Bean并完成依赖注入
+ * - 阶段5：Bean初始化 - 执行@PostConstruct和后处理器
+ * - 阶段6：容器就绪 - 所有Bean可用，容器启动完成
  */
 public class ApplicationContext {
 
     /**
-     * 🗂️ IOC容器 - Bean实例的存储仓库
-     * 
-     * 📋 数据结构说明：
-     * - Key: Bean的名称标识(String)
-     * - Value: Bean的实例对象(Object)
-     * 
-     * 🔍 设计考量：
-     * - 使用HashMap保证快速的Bean查找性能 O(1)
-     * - Key使用String而不是Class，支持同一类型的多个Bean实例
-     * - Value使用Object，支持存储任意类型的Bean
-     * 
-     * 💡 实际Spring的实现：
-     * - 实际Spring使用更复杂的数据结构，如ConcurrentHashMap
-     * - 支持分层容器、父子容器的概念
-     * - 包含更多的缓存层，如三级缓存解决循环依赖
+     * 🗂️ IOC容器 - 存储Bean实例
+     * 📋 结构：Key为Bean名称，Value为Bean对象
+     * 🔍 特点：快速查找，使用HashMap
+     * 💡 设计：单例模式，确保每个Bean只有一个实例
      */
     private Map<String, Object> ioc = new HashMap<>();
 
     /**
-     * 📋 Bean定义映射表 - Bean元数据的注册中心
-     * 
-     * 📋 数据结构说明：
-     * - Key: Bean的名称标识(String)
-     * - Value: Bean的定义信息(BeanDefinition)
-     * 
-     * 🔍 存在的意义：
-     * - 分离Bean的定义信息和实例信息
-     * - 支持Bean的延迟创建和按需创建
-     * - 为后续的依赖分析和循环依赖处理提供基础
-     * - 缓存反射信息，提高Bean创建性能
-     * 
-     * 🔄 与ioc容器的关系：
-     * beanDefinitionMap存储"如何创建Bean"
-     * ioc存储"已创建的Bean实例"
+     * 📋 Bean定义映射表 - 存储Bean元数据
+     * 📋 结构：Key为Bean名称，Value为BeanDefinition
+     * 🔍 作用：缓存反射信息，支持延迟创建
+     * 💡 设计：元数据驱动，先注册定义，按需创建实例
      */
     private Map<String, BeanDefinition> beanDefinitionMap = new HashMap<>();
 
     /**
+     * 🔄 正在创建的Bean缓存 - 防止循环依赖
+     * 📋 结构：Key为Bean名称，Value为正在创建的Bean实例
+     * 🔍 作用：解决循环依赖问题，避免无限递归
+     * 💡 设计：早期引用，在Bean完全初始化前就提供引用
+     */
+    private Map<String, Object> loadingIoc = new HashMap<>();
+
+    /**
+     * 🛠️ Bean后处理器列表 - 扩展Bean生命周期
+     * 📋 结构：存储所有BeanPostProcesser实现
+     * 🔍 作用：在Bean初始化前后执行自定义逻辑
+     * 💡 设计：责任链模式，支持多个后处理器串联执行
+     */
+    private List<BeanPostProcesser> beanPostProcessors = new ArrayList<>();
+
+    /**
      * 🚀 构造器 - 容器启动入口
+     * 📋 功能：接收包名，启动IOC初始化流程
+     * 🔄 流程：扫描包 -> 过滤组件 -> 注册定义 -> 创建Bean
+     * @param packageName 要扫描的包名
+     * @throws IOException 包扫描异常
      * 
-     * 📋 功能说明：
-     * 接收包名参数，启动IOC容器的完整初始化流程
-     * 
-     * 🔄 启动流程：
-     * 1. scanPackage: 扫描指定包下的所有类
-     * 2. scanCreate: 过滤出标记@Component的类
-     * 3. wrapper: 将类信息封装为BeanDefinition
-     * 4. createBean: 创建Bean实例并完成初始化
-     * 
-     * @param packageName 要扫描的包名，如"com.example.service"
-     * @throws IOException 如果包扫描过程中发生IO异常
+     * 💡 Spring容器启动设计：
+     * - 构造即启动：容器创建时自动完成初始化
+     * - 包扫描策略：支持指定包路径，灵活控制扫描范围
+     * - 异常处理：启动失败时抛出异常，确保容器状态一致
      */
     public ApplicationContext(String packageName) throws IOException {
         // 🚀 启动容器初始化流程
@@ -111,136 +96,161 @@ public class ApplicationContext {
     }
 
     /**
-     * 🔄 容器初始化方法 - Spring容器启动的核心流程
-     * 
-     * 📋 流程设计说明：
-     * 使用流式API设计，体现函数式编程思想，代码简洁易读
-     * 
-     * 🔍 详细流程：
-     * 1. scanPackage(packageName) → 扫描包，返回List<Class<?>>
-     * 2. .stream() → 转换为流，支持链式操作
-     * 3. .filter(this::scanCreate) → 过滤@Component类
-     * 4. .map(this::wrapper) → 转换为BeanDefinition
-     * 5. .forEach(this::createBean) → 创建Bean实例
-     * 
-     * 💡 设计优势：
-     * - 链式调用，逻辑清晰
-     * - 每个方法职责单一，易于测试和维护
-     * - 支持流水线式的处理方式
-     * 
-     * @param packageName 要扫描的基础包名
+     * 🔄 容器初始化方法 - 启动核心流程
+     * 🔍 流程：
+     * 1. 扫描包获取类
+     * 2. 过滤@Component类
+     * 3. 封装为BeanDefinition
+     * 4. 创建Bean实例
+     * @param packageName 要扫描的包名
      * @throws IOException 包扫描异常
+     * 
+     * 💡 Spring容器初始化策略：
+     * - 分阶段执行：扫描 -> 注册 -> 创建，逻辑清晰
+     * - 流式处理：使用Stream API，代码简洁高效
+     * - 后处理器优先：先初始化BeanPostProcessor，再处理其他Bean
+     * - 批量创建：统一创建所有Bean，确保依赖关系正确
      */
     public void initContext(String packageName) throws IOException {
         scanPackage(packageName)        // 🔍 阶段1：包扫描 - 发现所有类
                 .stream()
                 .filter(this::scanCreate)   // 🔍 阶段2：组件筛选 - 过滤@Component类
-                .map(this::wrapper)         // 📋 阶段3：定义封装 - 创建BeanDefinition
-                .forEach(this::createBean); // 🏭 阶段4：Bean创建 - 实例化并初始化
+                .forEach(this::wrapper);    // 📋 阶段3：Bean定义注册 - 封装为BeanDefinition
+        initBeanPostprocessor();            // 🛠️ 阶段4：后处理器初始化 - 优先初始化BeanPostProcessor
+        beanDefinitionMap.values().forEach(this::createBean); // 🏭 阶段5：Bean创建 - 实例化并初始化
     }
 
     /**
-     * 🏭 Bean创建入口 - 带重复检查的Bean创建
+     * 🛠️ 初始化Bean后处理器 - 优先创建后处理器
+     * 📋 功能：识别并创建所有BeanPostProcessor实现
+     * 🔍 流程：
+     * 1. 筛选BeanPostProcessor类型的Bean
+     * 2. 创建后处理器实例
+     * 3. 添加到后处理器列表
      * 
-     * 📋 功能说明：
-     * 这是Bean创建的入口方法，包含重复性检查，避免重复创建同名Bean
-     * 
-     * 🔍 处理逻辑：
-     * 1. 检查IOC容器中是否已存在同名Bean
-     * 2. 如果存在则跳过创建（避免重复）
-     * 3. 如果不存在则调用doCreateBean执行实际创建
-     * 
-     * 💡 设计模式：
-     * - 模板方法模式：定义创建Bean的基本框架
-     * - 防护模式：通过检查避免重复操作
-     * 
-     * @param beanDefinition Bean的定义信息，包含创建所需的元数据
+     * 💡 设计要点：
+     * - 优先级处理：后处理器必须先于其他Bean创建
+     * - 类型识别：使用isAssignableFrom判断类型兼容性
+     * - 循环依赖：后处理器也可能有依赖，需要递归创建
      */
-    protected void createBean(BeanDefinition beanDefinition) {
+    private void initBeanPostprocessor() {
+        beanDefinitionMap.values()
+                .stream()
+                .filter(bd -> BeanPostProcesser.class.isAssignableFrom(bd.getBeantype()))
+                .map(this::createBean)
+                .map(bean -> (BeanPostProcesser) bean)
+                .forEach(beanPostProcessors::add);
+    }
+
+    /**
+     * 🏭 Bean创建入口 - 避免重复创建
+     * 📋 功能：检查是否已存在Bean，若无则创建
+     * 🔍 流程：检查IOC -> 若存在则返回 -> 否则执行创建
+     * @param beanDefinition Bean定义信息
+     * @return 创建或已存在的Bean实例
+     * 
+     * 💡 单例模式设计：
+     * - 重复检查：避免同一个Bean被创建多次
+     * - 循环依赖处理：通过loadingIoc缓存正在创建的Bean
+     * - 线程安全：当前实现非线程安全，生产环境需要加锁
+     */
+    protected Object createBean(BeanDefinition beanDefinition) {
         String name = beanDefinition.getName();
-        
+
         // 🔍 防重复检查：避免同一个Bean被创建多次
         if (ioc.containsKey(name)) {
-            return; // Bean已存在，跳过创建
+            return ioc.get(name); // Bean已存在，跳过创建
         }
-        
+
+        // 🔄 循环依赖检查：如果Bean正在创建中，返回早期引用
+        if (loadingIoc.containsKey(name)) {
+            return loadingIoc.get(name); // 返回正在创建的Bean引用
+        }
+
         // 🏭 执行实际的Bean创建逻辑
-        doCreateBean(beanDefinition);
+        return doCreateBean(beanDefinition);
     }
 
     /**
-     * 🏭 Bean实例化核心方法 - 实际执行Bean的创建和初始化
+     * 🏭 Bean实例化核心方法 - 创建和初始化Bean
+     * 📋 功能：完成Bean生命周期
+     * 🔄 流程：
+     * 1. 通过构造器实例化
+     * 2. 注入依赖
+     * 3. 执行初始化
+     * 4. 注册到IOC容器
+     * @param beanDefinition Bean定义信息
+     * @return 创建好的Bean实例
+     * @throws RuntimeException 创建失败抛出异常
      * 
-     * 📋 功能说明：
-     * 这是Bean创建的核心实现，负责完成Bean的完整生命周期：
-     * 1. 实例化：通过反射调用构造器创建Bean实例
-     * 2. 初始化：执行@PostConstruct标记的初始化方法
-     * 3. 注册：将创建好的Bean实例放入IOC容器
-     * 
-     * 🔄 详细流程：
-     * Constructor.newInstance() → PostConstruct方法执行 → 注册到IOC容器
-     * 
-     * 🚨 注意：当前实现的限制
-     * - 缺少依赖注入阶段：应该在实例化后、初始化前进行@Autowired字段注入
-     * - 异常处理简化：实际应该区分不同类型的异常并给出具体提示
-     * 
-     * 💡 完整的Bean生命周期应该是：
-     * 1. 实例化 (✅已实现)
-     * 2. 依赖注入 (❌待实现：处理@Autowired字段)
-     * 3. 初始化回调 (✅已实现：@PostConstruct)
-     * 4. 使用阶段 (✅已实现：存储到IOC容器)
-     * 5. 销毁回调 (❌未实现：@PreDestroy)
-     * 
-     * @param beanDefinition Bean的定义信息
-     * @throws RuntimeException 如果Bean创建过程中发生任何异常
+     * 💡 Spring Bean生命周期管理：
+     * - 实例化：通过反射创建对象实例
+     * - 早期引用：解决循环依赖问题
+     * - 依赖注入：自动注入@Autowired标记的字段
+     * - 初始化：执行@PostConstruct方法和后处理器
+     * - 注册：将完整Bean存储到容器中
      */
-    private void doCreateBean(BeanDefinition beanDefinition) {
+    private Object doCreateBean(BeanDefinition beanDefinition) {
         Constructor<?> constructor = beanDefinition.getConstructor();
         Object bean = null;
-        
+
         try {
             // 🏗️ 步骤1：实例化 - 通过无参构造器创建Bean实例
             bean = constructor.newInstance();
+
+            // 🔄 步骤1.5：早期引用 - 解决循环依赖问题
+            loadingIoc.put(beanDefinition.getName(), bean);
             
-            // 💉 步骤2：依赖注入阶段 (当前版本缺失)
-            // TODO: 在这里应该处理@Autowired字段的依赖注入
-            // processAutowiredFields(bean, beanDefinition);
-            
-            // 🚀 步骤3：初始化回调 - 执行@PostConstruct方法
-            Method postConstructMethod = beanDefinition.getPostConstructMethod();
-            if (postConstructMethod != null) {
-                postConstructMethod.invoke(bean); // 调用初始化方法
-            }
-            
+            // 💉 步骤2：依赖注入 - 注入@Autowired标记的字段
+            processAutowiredFields(bean, beanDefinition);
+
+            // 🚀 步骤3：Bean初始化 - 执行@PostConstruct和后处理器
+            bean = initBean(beanDefinition, bean);
+
+            // 📦 步骤4：完成注册 - 移除早期引用，正式注册到容器
+            loadingIoc.remove(beanDefinition.getName());
+            ioc.put(beanDefinition.getName(), bean);
         } catch (Exception e) {
             // 🚨 异常处理：Bean创建失败时，包装异常并重新抛出
             throw new RuntimeException("创建Bean失败: " + beanDefinition.getName(), e);
         }
-        
-        // 📦 步骤4：注册到容器 - 将创建好的Bean存储到IOC容器中
-        ioc.put(beanDefinition.getName(), bean);
+
+        return bean;
+    }
+
+    private Object initBean(BeanDefinition beanDefinition, Object bean) throws IllegalAccessException, InvocationTargetException {
+        beanPostProcessors.forEach(beanPostProcessor -> {
+            beanPostProcessor.beforeInitializeBean(bean, beanDefinition.getName());
+        });
+        // 🚀 步骤3：初始化回调 - 执行@PostConstruct方法
+        Method postConstructMethod = beanDefinition.getPostConstructMethod();
+        if (postConstructMethod != null) {
+            postConstructMethod.invoke(bean); // 调用初始化方法
+        }
+        beanPostProcessors.forEach(beanPostProcessor -> {
+            beanPostProcessor.afterInitializeBean(bean, beanDefinition.getName());
+        });
+        return bean;
+    }
+
+    private void processAutowiredFields(Object bean, BeanDefinition beanDefinition) {
+        beanDefinition.getAutowiredFields().forEach(field -> {
+            field.setAccessible(true);
+            try {
+                field.set(bean, getBean(field.getType()));
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     /**
-     * 📋 Bean定义包装器 - 将Class转换为BeanDefinition
-     * 
-     * 📋 功能说明：
-     * 1. 将扫描到的Class对象封装为BeanDefinition
-     * 2. 进行Bean名称的唯一性检查
-     * 3. 将BeanDefinition注册到定义映射表中
-     * 
-     * 🔍 处理逻辑：
-     * - 创建BeanDefinition实例（自动解析@Component、构造器、@PostConstruct）
-     * - 检查Bean名称是否重复，避免覆盖已有Bean
-     * - 注册到beanDefinitionMap中，为后续Bean创建做准备
-     * 
-     * 🚨 异常情况：
-     * - 如果发现同名Bean，直接抛出异常终止启动
-     * - 这体现了"快速失败"原则，避免运行时的不确定性
-     * 
-     * @param type 扫描到的@Component标记的类
-     * @return 封装后的BeanDefinition对象
-     * @throws RuntimeException 如果发现Bean名称重复
+     * 📋 Bean定义包装器 - Class转BeanDefinition
+     * 📋 功能：封装Class为BeanDefinition并注册
+     * 🔍 流程：创建定义 -> 检查重复 -> 注册到映射表
+     * @param type 扫描到的@Component类
+     * @return BeanDefinition对象
+     * @throws RuntimeException Bean名称重复抛出异常
      */
     protected BeanDefinition wrapper(Class<?> type) {
         // 🏗️ 创建BeanDefinition，自动解析类的元数据
@@ -248,7 +258,7 @@ public class ApplicationContext {
         
         // 🔍 唯一性检查：确保Bean名称不重复
         if (beanDefinitionMap.containsKey(beanDefinition.getName())) {
-            throw new RuntimeException("Bean名称重复: " + beanDefinition.getName() 
+            throw new RuntimeException("Bean名称重复: " + beanDefinition.getName()
                 + "，请检查@Component注解的name属性或类名是否冲突");
         }
         
@@ -259,59 +269,26 @@ public class ApplicationContext {
     }
 
     /**
-     * 🔍 组件扫描过滤器 - 判断类是否为Spring管理的组件
-     * 
-     * 📋 功能说明：
-     * 检查给定的类是否标记了@Component注解，确定是否需要被Spring容器管理
-     * 
-     * 🎯 过滤规则：
-     * - 有@Component注解 → true（需要被容器管理）
-     * - 无@Component注解 → false（忽略该类）
-     * 
-     * 💡 扩展说明：
-     * 实际Spring框架还支持：
-     * - @Service、@Repository、@Controller等衍生注解
-     * - @Configuration配置类
-     * - @Bean方法定义的Bean
-     * - XML配置文件定义的Bean
-     * 
-     * @param clazz 待检查的类对象
-     * @return true表示该类是Spring组件，false表示忽略
+     * 🔍 组件扫描过滤器 - 判断是否为Spring组件
+     * 📋 功能：检查类是否有@Component注解
+     * 🎯 规则：有注解返回true，无注解返回false
+     * @param clazz 待检查的类
+     * @return 是否为Spring组件
      */
     protected boolean scanCreate(Class<?> clazz) {
         return clazz.isAnnotationPresent(Component.class);
     }
 
     /**
-     * 📦 包扫描器 - 递归扫描指定包下的所有Class文件
-     * 
-     * 📋 功能说明：
-     * 扫描指定包名下的所有.class文件，并通过反射加载为Class对象
-     * 
-     * 🔍 实现原理：
-     * 1. 通过ClassLoader获取包对应的文件系统路径
-     * 2. 使用Java NIO的Files.walkFileTree递归遍历目录
-     * 3. 过滤出.class文件，转换为完整的类名
-     * 4. 通过Class.forName加载类对象
-     * 
-     * 🎯 路径转换逻辑：
-     * 文件路径 → 类名的转换过程：
-     * /path/to/com/example/UserService.class
-     * → com.example.UserService.class
-     * → com.example.UserService
-     * 
-     * 💡 技术细节：
-     * - 使用SimpleFileVisitor访问者模式遍历文件树
-     * - 支持嵌套包的递归扫描
-     * - 自动处理包名和文件路径的转换
-     * 
-     * 🚨 潜在问题：
-     * - 当前实现假设类路径结构标准，可能在某些特殊环境下失效
-     * - 没有处理JAR包内的类扫描（实际Spring支持）
-     * 
-     * @param packageName 要扫描的包名，如"com.example.service"
-     * @return 扫描到的所有Class对象列表
-     * @throws IOException 如果文件系统访问失败
+     * 📦 包扫描器 - 扫描指定包下的Class文件
+     * 📋 功能：扫描.class文件并加载为Class对象
+     * 🔍 流程：
+     * 1. 获取包路径
+     * 2. 遍历目录树找.class文件
+     * 3. 转换为类名并加载
+     * @param packageName 要扫描的包名
+     * @return 扫描到的Class对象列表
+     * @throws IOException 文件系统访问失败
      */
     private List<Class<?>> scanPackage(String packageName) throws IOException {
         List<Class<?>> classes = new ArrayList<>();
@@ -327,13 +304,12 @@ public class ApplicationContext {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
 
             /**
-             * 🔍 文件访问器 - 处理遍历到的每个文件
-             * 
-             * 📋 处理逻辑：
-             * 1. 检查文件是否为.class文件
-             * 2. 将文件路径转换为完整的类名
-             * 3. 通过反射加载类对象
-             * 4. 添加到结果列表中
+             * 🔍 文件访问器 - 处理每个文件
+             * 📋 流程：
+             * 1. 检查是否为.class文件
+             * 2. 转换路径为类名
+             * 3. 加载类对象
+             * 4. 添加到结果列表
              */
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -367,89 +343,61 @@ public class ApplicationContext {
     }
 
     /**
-     * 🔍 根据名称获取Bean - 最基础的Bean查找方式
-     * 
-     * 📋 功能说明：
-     * 通过Bean的名称从IOC容器中获取对应的Bean实例
-     * 
-     * 🎯 使用场景：
-     * - 当明确知道Bean名称时使用
-     * - 避免类型转换，直接返回Object类型
-     * 
-     * 💡 名称规则：
-     * - 默认名称：类名首字母小写（UserService → userService）
-     * - 自定义名称：@Component(name="custom")指定的名称
-     * 
-     * @param beanName Bean的名称标识
-     * @return Bean实例，如果不存在返回null
+     * 🔍 根据名称获取Bean - 基础查找方式
+     * 📋 功能：通过Bean名称获取实例
+     * 🎯 场景：明确知道Bean名称时使用
+     * @param beanName Bean名称
+     * @return Bean实例，不存在返回null
      */
     public Object getBean(String beanName) {
-        return ioc.get(beanName);
+        if (beanName == null) {
+            return null;
+        }
+        Object bean = ioc.get(beanName);
+        if (bean != null) {
+            return bean;
+        }
+        if (beanDefinitionMap.containsKey(beanName)) {
+            return createBean(beanDefinitionMap.get(beanName));
+        }
+        return null;
     }
 
     /**
-     * 🔍 根据类型获取Bean - 类型安全的Bean查找方式
-     * 
-     * 📋 功能说明：
-     * 通过Bean的类型从IOC容器中查找匹配的Bean实例，支持继承和实现关系
-     * 
-     * 🔍 匹配规则：
-     * - 精确匹配：Bean的类型与指定类型完全一致
-     * - 继承匹配：Bean是指定类型的子类
-     * - 实现匹配：Bean实现了指定的接口
-     * 
-     * 🎯 使用场景：
-     * - 类型安全：返回指定类型，无需强制转换
-     * - 接口编程：通过接口类型获取实现类实例
-     * 
-     * 🚨 注意事项：
-     * - 如果有多个匹配的Bean，只返回第一个找到的
-     * - 如果没有匹配的Bean，返回null（实际Spring会抛出异常）
-     * 
-     * @param <T> Bean的类型参数
-     * @param clazz Bean的类型Class对象
-     * @return 匹配的Bean实例，类型安全，如果不存在返回null
+     * 🔍 根据类型获取Bean - 类型安全查找
+     * 📋 功能：通过类型查找Bean实例
+     * 🔍 规则：精确匹配、继承匹配、实现匹配
+     * 🎯 场景：接口编程，类型安全获取
+     * @param <T> Bean类型参数
+     * @param clazz Bean类型Class对象
+     * @return 匹配的Bean实例，不存在返回null
      */
     public <T> T getBean(Class<T> clazz) {
-        return this.ioc.values()
+        String beanName = this.beanDefinitionMap.values()
                 .stream()
-                .filter(bean -> clazz.isAssignableFrom(bean.getClass())) // 类型匹配检查
-                .map(bean -> (T) bean)                                   // 类型转换
-                .findAny()                                               // 找到任意一个匹配的
-                .orElse(null);                                          // 没找到返回null
+                .filter(bd -> clazz.isAssignableFrom(bd.getBeantype()))
+                .map(BeanDefinition::getName)
+                .findFirst()
+                .orElse(null);
+        return (T) getBean(beanName);
     }
 
     /**
-     * 🔍 根据类型获取所有Bean - 批量Bean查找方式
-     * 
-     * 📋 功能说明：
-     * 获取容器中所有匹配指定类型的Bean实例，返回列表
-     * 
-     * 🎯 使用场景：
-     * - 获取某个接口的所有实现类
-     * - 批量处理同类型的Bean
-     * - 插件式架构：动态获取所有插件实例
-     * 
-     * 💡 实际应用示例：
-     * ```java
-     * // 获取所有MessageHandler接口的实现
-     * List<MessageHandler> handlers = context.getBeans(MessageHandler.class);
-     * // 批量处理消息
-     * handlers.forEach(handler -> handler.handle(message));
-     * ```
-     * 
-     * 🔍 匹配规则：与getBean(Class<T>)相同，支持继承和实现关系
-     * 
-     * @param <T> Bean的类型参数
-     * @param beanType Bean的类型Class对象
-     * @return 所有匹配的Bean实例列表，如果没有匹配的返回空列表
+     * 🔍 根据类型获取所有Bean - 批量查找
+     * 📋 功能：获取所有匹配类型的Bean实例
+     * 🎯 场景：获取接口所有实现，批量处理
+     * @param <T> Bean类型参数
+     * @param beanType Bean类型Class对象
+     * @return 匹配的Bean实例列表
      */
     public <T> List<T> getBeans(Class<T> beanType) {
-        return this.ioc.values()
+        return this.beanDefinitionMap.values()
                 .stream()
-                .filter(bean -> beanType.isAssignableFrom(bean.getClass())) // 类型匹配检查
-                .map(bean -> (T) bean)                                      // 类型转换
-                .toList();                                                  // 收集为列表
+                .filter(bd -> beanType.isAssignableFrom(bd.getBeantype()))
+                .map(BeanDefinition::getName)
+                .map(this::getBean)                                    // 收集为列表
+                .map((bean) -> (T) bean)
+                .toList();
     }
 
 }

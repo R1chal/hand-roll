@@ -6,43 +6,39 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 🏷️ @Component 注解 - Spring IOC容器的核心标记注解
+ * 🏷️ @Component 注解 - Spring IOC容器核心标记
  * 
- * 📚 作用说明：
- * 1. 标记一个类为Spring管理的Bean组件
- * 2. 告诉Spring容器："这个类需要被实例化并加入到IOC容器中"
- * 3. 类似于Spring Framework中的 @Component、@Service、@Repository 等注解
+ * 📋 作用：标记类为Spring管理的Bean
+ * 🔍 流程：
+ * 1. 标记类
+ * 2. Spring扫描并注册
+ * 3. 加入IOC容器
  * 
- * 🔍 设计原理：
- * - 使用注解驱动的方式替代XML配置
- * - 通过反射机制在运行时识别哪些类需要被Spring管理
- * - 实现控制反转(IOC)和依赖注入(DI)的基础
+ * 💡 Spring框架设计思想：
+ * - 通过注解声明式地标记需要管理的类
+ * - 遵循"约定优于配置"原则，减少XML配置
+ * - 支持自定义Bean名称，提供灵活性
  * 
- * 💡 使用示例：
- * @Component                    // 使用默认名称（类名首字母小写）
- * @Component(name = "myBean")   // 指定自定义Bean名称
+ * 🔄 Spring容器启动流程中的角色：
+ * - 包扫描阶段：识别所有@Component标记的类
+ * - Bean定义阶段：将类信息封装为BeanDefinition
+ * - Bean创建阶段：实例化并管理Bean生命周期
  * 
- * 🎯 注解元信息：
- * - @Target(ElementType.TYPE)：只能用在类、接口、枚举上
- * - @Retention(RetentionPolicy.RUNTIME)：运行时保留，支持反射访问
+ * 🎯 核心设计理念：
+ * - 声明式编程：通过注解声明意图，而不是命令式配置
+ * - 自动发现：容器自动扫描和识别需要管理的组件
+ * - 约定优于配置：默认规则简化配置，特殊需求可自定义
+ * - 元数据驱动：注解提供元数据，容器根据元数据管理Bean
  */
 @Target(ElementType.TYPE)           // 📍 限定注解只能用在类型声明上
 @Retention(RetentionPolicy.RUNTIME) // 🕐 运行时保留，确保反射能够获取到
 public @interface Component {
 
     /**
-     * 🏷️ Bean的名称标识
-     * 
-     * 📋 功能说明：
-     * - 如果不指定name，默认使用类名首字母小写作为Bean名称
-     * - 如果指定name，则使用指定的名称作为Bean在IOC容器中的唯一标识
-     * - 通过ApplicationContext.getBean(name)可以根据名称获取Bean实例
-     * 
-     * 🚨 注意事项：
-     * - Bean名称在同一个容器中必须唯一，重复会抛出异常
-     * - 建议使用有意义的名称，便于调试和维护
-     * 
-     * @return Bean的名称，默认为空字符串（使用默认命名规则）
+     * 🏷️ Bean名称标识
+     * 📋 作用：指定Bean在IOC容器中的名称
+     * 🔍 规则：默认类名首字母小写，或指定名称
+     * @return Bean名称，默认空字符串（使用默认规则）
      */
     String name() default "";
 

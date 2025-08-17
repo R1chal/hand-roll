@@ -3,46 +3,29 @@ package com.richal.learn.sub;
 import com.richal.learn.Component;
 
 /**
- * 🐕 Dog - 简单Bean示例类
+ * 🐕 Dog - 简单Bean示例
  * 
- * 📚 示例说明：
- * 这是一个最简单的Spring Bean示例，展示了：
- * 1. 使用@Component注解标记类为Spring管理的组件
- * 2. 自定义Bean名称的用法
- * 3. 无依赖的独立Bean
+ * 📋 作用：展示基本Spring Bean配置
+ * 🔍 流程：
+ * 1. @Component标记为Spring组件
+ * 2. 指定自定义Bean名称
+ * 3. 注册到IOC容器
  * 
- * 🏷️ Bean配置：
- * - 注解：@Component(name = "myDog")
- * - Bean名称：myDog（自定义名称，而不是默认的"dog"）
- * - 依赖：无（独立Bean）
- * - 生命周期：无特殊配置（默认生命周期）
+ * 💡 Spring Bean命名策略：
+ * - 默认命名：类名首字母小写（如：Dog -> dog）
+ * - 自定义命名：通过@Component(name="xxx")指定
+ * - 命名冲突：相同名称的Bean会抛出异常
+ * - 命名规范：建议使用有意义的名称，便于维护
  * 
- * 🎯 在容器中的使用：
- * ```java
- * ApplicationContext context = new ApplicationContext("com.richal.learn");
- * 
- * // 通过自定义名称获取
- * Dog dog1 = (Dog) context.getBean("myDog");
- * 
- * // 通过类型获取
- * Dog dog2 = context.getBean(Dog.class);
- * 
- * // dog1 和 dog2 是同一个实例（单例模式）
- * System.out.println(dog1 == dog2); // true
- * ```
- * 
- * 💡 设计目的：
- * - 作为Cat类的依赖，演示依赖注入
- * - 展示最简单的Bean配置方式
- * - 验证容器的基本Bean管理功能
+ * 🔄 Spring容器中的Bean管理：
+ * - 名称解析：使用@Component(name="myDog")指定Bean名称
+ * - 唯一性保证：容器中每个Bean名称都是唯一的
+ * - 类型匹配：支持通过Dog类型或"myDog"名称获取Bean
+ * - 延迟创建：只有在需要时才创建Bean实例
  */
 @Component(name = "myDog")  // 🏷️ 指定Bean名称为"myDog"而不是默认的"dog"
 public class Dog {
     
-    // 📝 这是一个最简单的Bean实现：
-    // - 只有@Component注解
-    // - 没有字段、方法或构造器
-    // - 依赖容器提供的默认无参构造器
-    // - 没有初始化逻辑或依赖注入
+    // 📝 简单Bean实现：无字段、方法，仅使用默认构造器
     
 }
