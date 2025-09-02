@@ -16,7 +16,16 @@ public class Main {
         MyThreadPool myThreadPool = new MyThreadPool(2, 4, 1,
                 TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(2),
-                new ThrowRejectHandle());
+                new DiscardRejectHandle(),
+                new ThreadFactory() {
+                    private int threadNumber = 1;
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = new Thread(r, "MyPool-Thread-" + threadNumber++);
+                        t.setDaemon(false);
+                        return t;
+                    }
+                });
         for (int i = 0; i < 5; i++) {
             myThreadPool.execute(() -> {
                 try {

@@ -2,6 +2,7 @@ package com.richal.learn;
 
 import java.util.HashSet;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -17,6 +18,7 @@ public class MyThreadPool {
     private final TimeUnit unit;
     public final BlockingQueue<Runnable> workQueue;
     private final RejectHandle rejectHandle;
+    private final ThreadFactory threadFactory;
 
     // --- 内部状态 ---
     /**
@@ -37,14 +39,17 @@ public class MyThreadPool {
      * @param keepAliveTime   非核心线程的空闲存活时间
      * @param unit            存活时间的单位
      * @param workQueue       任务队列
+     * @param rejectHandle    拒绝策略
+     * @param threadFactory   线程工厂
      */
-    public MyThreadPool(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, RejectHandle rejectHandle) {
+    public MyThreadPool(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, RejectHandle rejectHandle, ThreadFactory threadFactory) {
         this.corePoolSize = corePoolSize;
         this.maximumPoolSize = maximumPoolSize;
         this.keepAliveTime = keepAliveTime;
         this.unit = unit;
         this.workQueue = workQueue;
         this.rejectHandle = rejectHandle;
+        this.threadFactory = threadFactory;
     }
 
     /**
@@ -95,7 +100,7 @@ public class MyThreadPool {
             // 使用CAS原子地增加线程计数
             if (workerCount.compareAndSet(count, count + 1)) {
                 Worker worker = new Worker(firstTask);
-                Thread t = new Thread(worker);
+                Thread t = threadFactory.newThread(worker);
                 // 加锁以安全地将工作线程添加到集合中
                 synchronized (workers) {
                     workers.add(worker);
