@@ -41,10 +41,27 @@ context.setStrategy(new WeChatPayStrategy("wx_openid_123", "password"));
 context.executePayment(order.getTotalAmount());
 ```
 
+### 责任链模式示例
+
+```java
+// 构建审批责任链
+ApprovalChain chain = ApprovalChain.buildStandardChain();
+
+// 处理请假请求
+LeaveRequest request = new LeaveRequest("张三", 5, "家庭原因");
+String result = chain.process(request);
+
+// 自定义责任链
+Approver manager = new Manager("李经理");
+Approver ceo = new CEO("王CEO");
+ApprovalChain customChain = ApprovalChain.buildCustomChain(manager, ceo);
+```
+
 ## 已实现的模式
 
 - ✅ **迭代器模式 (Iterator Pattern)** - [详细文档](ITERATOR_PATTERN.md)
 - ✅ **策略模式 (Strategy Pattern)** - [详细文档](STRATEGY_PATTERN.md)
+- ✅ **责任链模式 (Chain of Responsibility Pattern)** - [详细文档](CHAIN_PATTERN.md)
 
 ## 文档导航
 
@@ -68,10 +85,12 @@ mvn exec:java -Dexec.mainClass="com.richal.learn.iterator.IteratorPatternTest"
 design-patterns/
 ├── src/main/java/com/richal/learn/
 │   ├── iterator/              # 迭代器模式实现
-│   └── strategy/              # 策略模式实现
+│   ├── strategy/              # 策略模式实现
+│   └── chain/                 # 责任链模式实现
 └── src/test/java/com/richal/learn/
     ├── iterator/              # 迭代器模式测试
-    └── strategy/              # 策略模式测试
+    ├── strategy/              # 策略模式测试
+    └── chain/                 # 责任链模式测试
 ```
 
 ---

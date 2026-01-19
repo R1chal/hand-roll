@@ -74,6 +74,42 @@ context.executePayment(order.getTotalAmount());
 
 ---
 
+### 3. 责任链模式 (Chain of Responsibility Pattern)
+
+**类型**: 行为型模式
+
+**目的**: 允许你将请求沿着处理者链传递，直到某个处理者处理它为止。避免请求发送者和接收者之间的耦合关系。
+
+**实现包**: `com.richal.learn.chain`
+
+**核心类**:
+- `Approver` - 抽象审批者
+- `Supervisor` - 主管（≤1天）
+- `Manager` - 经理（≤3天）
+- `Director` - 总监（≤7天）
+- `CEO` - 总经理（任意天数）
+- `LeaveRequest` - 请假请求
+- `ApprovalChain` - 责任链构建器
+
+**示例代码**:
+```java
+// 构建标准审批责任链
+ApprovalChain chain = ApprovalChain.buildStandardChain();
+
+// 处理请假请求
+LeaveRequest request = new LeaveRequest("张三", 5, "家庭原因");
+String result = chain.process(request);
+
+// 自定义责任链
+Approver manager = new Manager("李经理");
+Approver ceo = new CEO("王CEO");
+ApprovalChain customChain = ApprovalChain.buildCustomChain(manager, ceo);
+```
+
+**详细文档**: [CHAIN_PATTERN.md](CHAIN_PATTERN.md)
+
+---
+
 ## 计划实现的设计模式
 
 ### 创建型模式 (Creational Patterns)
@@ -98,10 +134,10 @@ context.executePayment(order.getTotalAmount());
 
 - [x] **迭代器模式 (Iterator Pattern)** - 顺序访问聚合对象的元素
 - [x] **策略模式 (Strategy Pattern)** - 定义一系列算法，并使它们可以互换
+- [x] **责任链模式 (Chain of Responsibility Pattern)** - 将请求沿着处理者链传递
 - [ ] **观察者模式 (Observer Pattern)** - 定义对象间的一对多依赖关系
 - [ ] **模板方法模式 (Template Method Pattern)** - 定义算法骨架，延迟某些步骤到子类
 - [ ] **命令模式 (Command Pattern)** - 将请求封装为对象
-- [ ] **责任链模式 (Chain of Responsibility Pattern)** - 将请求沿着处理者链传递
 - [ ] **状态模式 (State Pattern)** - 允许对象在内部状态改变时改变其行为
 - [ ] **访问者模式 (Visitor Pattern)** - 在不改变元素类的前提下定义新操作
 - [ ] **中介者模式 (Mediator Pattern)** - 用中介对象封装一系列对象交互
@@ -119,6 +155,7 @@ design-patterns/
 ├── DESIGN_PATTERNS_OVERVIEW.md                # 设计模式完整概览
 ├── ITERATOR_PATTERN.md                        # 迭代器模式详细说明
 ├── STRATEGY_PATTERN.md                        # 策略模式详细说明
+├── CHAIN_PATTERN.md                           # 责任链模式详细说明
 └── src/
     ├── main/java/com/richal/learn/
     │   ├── iterator/                          # 迭代器模式实现
@@ -126,18 +163,28 @@ design-patterns/
     │   │   ├── Aggregate.java                 # 聚合接口
     │   │   ├── BookShelf.java                 # 具体聚合类
     │   │   └── Book.java                      # 元素类
-    │   └── strategy/                          # 策略模式实现
-    │       ├── PaymentStrategy.java           # 策略接口
-    │       ├── AlipayStrategy.java            # 支付宝策略
-    │       ├── WeChatPayStrategy.java         # 微信支付策略
-    │       ├── CreditCardStrategy.java        # 银行卡策略
-    │       ├── PaymentContext.java            # 上下文类
-    │       └── Order.java                     # 订单类
+    │   ├── strategy/                          # 策略模式实现
+    │   │   ├── PaymentStrategy.java           # 策略接口
+    │   │   ├── AlipayStrategy.java            # 支付宝策略
+    │   │   ├── WeChatPayStrategy.java         # 微信支付策略
+    │   │   ├── CreditCardStrategy.java        # 银行卡策略
+    │   │   ├── PaymentContext.java            # 上下文类
+    │   │   └── Order.java                     # 订单类
+    │   └── chain/                             # 责任链模式实现
+    │       ├── Approver.java                  # 抽象审批者
+    │       ├── Supervisor.java                # 主管
+    │       ├── Manager.java                   # 经理
+    │       ├── Director.java                  # 总监
+    │       ├── CEO.java                       # CEO
+    │       ├── LeaveRequest.java              # 请假请求
+    │       └── ApprovalChain.java             # 责任链构建器
     └── test/java/com/richal/learn/
         ├── iterator/                          # 迭代器模式测试
         │   └── IteratorPatternTest.java       # 测试类
-        └── strategy/                          # 策略模式测试
-            └── StrategyPatternTest.java       # 测试类
+        ├── strategy/                          # 策略模式测试
+        │   └── StrategyPatternTest.java       # 测试类
+        └── chain/                             # 责任链模式测试
+            └── ChainPatternTest.java          # 测试类
 ```
 
 ---
@@ -242,5 +289,6 @@ mvn exec:java -Dexec.mainClass="com.richal.learn.iterator.IteratorPatternTest"
 - ✅ 创建设计模式模块
 - ✅ 实现迭代器模式
 - ✅ 实现策略模式
+- ✅ 实现责任链模式
 - ✅ 添加完整的测试用例
 - ✅ 编写详细的文档和 UML 类图（Mermaid + ASCII）
