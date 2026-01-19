@@ -23,9 +23,28 @@ while (iterator.hasNext()) {
 }
 ```
 
+### 策略模式示例
+
+```java
+// 创建订单
+Order order = new Order();
+order.addItem("Java编程思想", 108.00);
+order.addItem("设计模式", 89.00);
+
+// 使用支付宝支付
+PaymentStrategy alipay = new AlipayStrategy("user@alipay.com", "password");
+PaymentContext context = new PaymentContext(alipay);
+context.executePayment(order.getTotalAmount());
+
+// 切换到微信支付
+context.setStrategy(new WeChatPayStrategy("wx_openid_123", "password"));
+context.executePayment(order.getTotalAmount());
+```
+
 ## 已实现的模式
 
 - ✅ **迭代器模式 (Iterator Pattern)** - [详细文档](ITERATOR_PATTERN.md)
+- ✅ **策略模式 (Strategy Pattern)** - [详细文档](STRATEGY_PATTERN.md)
 
 ## 文档导航
 
@@ -48,9 +67,11 @@ mvn exec:java -Dexec.mainClass="com.richal.learn.iterator.IteratorPatternTest"
 ```
 design-patterns/
 ├── src/main/java/com/richal/learn/
-│   └── iterator/              # 迭代器模式实现
+│   ├── iterator/              # 迭代器模式实现
+│   └── strategy/              # 策略模式实现
 └── src/test/java/com/richal/learn/
-    └── iterator/              # 测试用例
+    ├── iterator/              # 迭代器模式测试
+    └── strategy/              # 策略模式测试
 ```
 
 ---

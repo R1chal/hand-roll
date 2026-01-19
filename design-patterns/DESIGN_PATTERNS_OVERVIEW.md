@@ -38,6 +38,42 @@ while (iterator.hasNext()) {
 
 ---
 
+### 2. 策略模式 (Strategy Pattern)
+
+**类型**: 行为型模式
+
+**目的**: 定义一系列算法，把它们封装起来，并且使它们可以互换。策略模式让算法独立于使用它的客户端而变化。
+
+**实现包**: `com.richal.learn.strategy`
+
+**核心类**:
+- `PaymentStrategy` - 策略接口
+- `AlipayStrategy` - 支付宝支付策略
+- `WeChatPayStrategy` - 微信支付策略
+- `CreditCardStrategy` - 银行卡支付策略
+- `PaymentContext` - 上下文类
+- `Order` - 订单类
+
+**示例代码**:
+```java
+Order order = new Order();
+order.addItem("Java编程思想", 108.00);
+order.addItem("设计模式", 89.00);
+
+// 使用支付宝支付
+PaymentStrategy alipay = new AlipayStrategy("user@alipay.com", "password");
+PaymentContext context = new PaymentContext(alipay);
+context.executePayment(order.getTotalAmount());
+
+// 切换到微信支付
+context.setStrategy(new WeChatPayStrategy("wx_openid_123", "password"));
+context.executePayment(order.getTotalAmount());
+```
+
+**详细文档**: [STRATEGY_PATTERN.md](STRATEGY_PATTERN.md)
+
+---
+
 ## 计划实现的设计模式
 
 ### 创建型模式 (Creational Patterns)
@@ -61,8 +97,8 @@ while (iterator.hasNext()) {
 ### 行为型模式 (Behavioral Patterns)
 
 - [x] **迭代器模式 (Iterator Pattern)** - 顺序访问聚合对象的元素
+- [x] **策略模式 (Strategy Pattern)** - 定义一系列算法，并使它们可以互换
 - [ ] **观察者模式 (Observer Pattern)** - 定义对象间的一对多依赖关系
-- [ ] **策略模式 (Strategy Pattern)** - 定义一系列算法，并使它们可以互换
 - [ ] **模板方法模式 (Template Method Pattern)** - 定义算法骨架，延迟某些步骤到子类
 - [ ] **命令模式 (Command Pattern)** - 将请求封装为对象
 - [ ] **责任链模式 (Chain of Responsibility Pattern)** - 将请求沿着处理者链传递
@@ -80,17 +116,28 @@ while (iterator.hasNext()) {
 design-patterns/
 ├── pom.xml                                    # Maven 配置
 ├── README.md                                  # 本文档
+├── DESIGN_PATTERNS_OVERVIEW.md                # 设计模式完整概览
 ├── ITERATOR_PATTERN.md                        # 迭代器模式详细说明
+├── STRATEGY_PATTERN.md                        # 策略模式详细说明
 └── src/
     ├── main/java/com/richal/learn/
-    │   └── iterator/                          # 迭代器模式实现
-    │       ├── Iterator.java                  # 迭代器接口
-    │       ├── Aggregate.java                 # 聚合接口
-    │       ├── BookShelf.java                 # 具体聚合类
-    │       └── Book.java                      # 元素类
+    │   ├── iterator/                          # 迭代器模式实现
+    │   │   ├── Iterator.java                  # 迭代器接口
+    │   │   ├── Aggregate.java                 # 聚合接口
+    │   │   ├── BookShelf.java                 # 具体聚合类
+    │   │   └── Book.java                      # 元素类
+    │   └── strategy/                          # 策略模式实现
+    │       ├── PaymentStrategy.java           # 策略接口
+    │       ├── AlipayStrategy.java            # 支付宝策略
+    │       ├── WeChatPayStrategy.java         # 微信支付策略
+    │       ├── CreditCardStrategy.java        # 银行卡策略
+    │       ├── PaymentContext.java            # 上下文类
+    │       └── Order.java                     # 订单类
     └── test/java/com/richal/learn/
-        └── iterator/                          # 迭代器模式测试
-            └── IteratorPatternTest.java       # 测试类
+        ├── iterator/                          # 迭代器模式测试
+        │   └── IteratorPatternTest.java       # 测试类
+        └── strategy/                          # 策略模式测试
+            └── StrategyPatternTest.java       # 测试类
 ```
 
 ---
@@ -194,5 +241,6 @@ mvn exec:java -Dexec.mainClass="com.richal.learn.iterator.IteratorPatternTest"
 ### 2026-01-19
 - ✅ 创建设计模式模块
 - ✅ 实现迭代器模式
+- ✅ 实现策略模式
 - ✅ 添加完整的测试用例
-- ✅ 编写详细的文档和 UML 类图
+- ✅ 编写详细的文档和 UML 类图（Mermaid + ASCII）
