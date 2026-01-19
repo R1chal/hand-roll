@@ -16,6 +16,7 @@
         <module>aqs-lock</module>
         <module>spring-mini</module>
         <module>proxy_module</module>
+        <module>design-patterns</module>
     </modules>
 
     <properties>
