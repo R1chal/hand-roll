@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>thread-pool</module>
+        <module>threadlocal</module>
         <module>hashmap</module>
         <module>list</module>
         <module>aqs-lock</module>
