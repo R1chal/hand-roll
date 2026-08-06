@@ -18,6 +18,7 @@
         <module>spring-mini</module>
         <module>proxy_module</module>
         <module>design-patterns</module>
+        <module>k8s-demo</module>
     </modules>
 
     <properties>

@@ -1,6 +1,6 @@
 package com.richal.learn;
 
-public class MyInterfaceProxy0 implements MyInterface{
+public class MyInterfaceProxy4 implements MyInterface{
     private MyInterface myInterface;
     
     @Override
