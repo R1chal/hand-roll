@@ -18,6 +18,11 @@ pipeline {
                 sh 'mvn clean package -DskipTests'
             }
         }
+        stage('发布到 Nexus') {
+            steps {
+                sh 'mvn deploy -DskipTests'
+            }
+        }
     }
 
     post {
