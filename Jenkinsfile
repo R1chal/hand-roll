@@ -27,7 +27,7 @@ pipeline {
     }
 
     post {
-        success { echo '✅ 流水线成功' }
+        success { echo '🎉 自动触发构建成功!' }
         failure { echo '❌ 流水线失败' }
     }
 }
