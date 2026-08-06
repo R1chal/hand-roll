@@ -25,17 +25,21 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Nexus 地址:本机默认 localhost;Jenkins 用 -Dnexus.url=http://nexus:8081 覆盖 -->
+        <nexus.url>http://localhost:8081</nexus.url>
     </properties>
 
-    <!-- 制品上传目标:Nexus。所有子模块自动继承 -->
+    <!-- 制品上传目标:Nexus。所有子模块自动继承。
+         地址用 ${nexus.url} 占位,默认 localhost:8081(本机 mvn deploy 用);
+         Jenkins 容器里通过 -Dnexus.url=http://nexus:8081 覆盖(容器内 localhost 指自己) -->
     <distributionManagement>
         <repository>
             <id>nexus-releases</id>
-            <url>http://localhost:8081/repository/maven-releases/</url>
+            <url>${nexus.url}/repository/maven-releases/</url>
         </repository>
         <snapshotRepository>
             <id>nexus-snapshots</id>
-            <url>http://localhost:8081/repository/maven-snapshots/</url>
+            <url>${nexus.url}/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 

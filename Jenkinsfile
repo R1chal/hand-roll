@@ -20,7 +20,8 @@ pipeline {
         }
         stage('发布到 Nexus') {
             steps {
-                sh 'mvn deploy -DskipTests'
+                // 容器内 localhost 指自己,必须用容器名 nexus 覆盖默认地址
+                sh 'mvn deploy -DskipTests -Dnexus.url=http://nexus:8081'
             }
         }
     }
