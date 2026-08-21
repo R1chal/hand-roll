@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>WebSocket 学习测试页</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --line:#262b36; --txt:#e6e9ef; --dim:#8a93a6; --acc:#4f8cff; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f4f6fa; --card:#fff; --line:#e2e6ee; --txt:#1b2230; --dim:#5b657a; --acc:#2f6bff; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.6 -apple-system,"PingFang SC",system-ui,sans-serif;
+         background:var(--bg); color:var(--txt); padding:24px; }
+  .wrap { max-width:720px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--dim); margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  input[type=text] { flex:1; min-width:220px; background:var(--bg); color:var(--txt);
+      border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:14px; }
+  button { background:var(--acc); color:#fff; border:none; border-radius:8px;
+      padding:9px 16px; font-size:14px; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  #log { height:320px; overflow-y:auto; font-family:ui-monospace,Menlo,monospace; font-size:13px;
+      background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; white-space:pre-wrap; }
+  .me { color:var(--acc); }
+  .sys { color:var(--dim); }
+  .tag { font-size:12px; padding:2px 8px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
+  .on { color:#2ecc71; border-color:#2ecc71; } .off { color:#e74c3c; border-color:#e74c3c; }
+  .hint { color:var(--dim); font-size:12px; margin-top:8px; }
+  code { background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:1px 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💬 WebSocket 学习测试页</h1>
+  <div class="sub">双击本文件即可用 · 配合 <code>netty-learning</code> 的手写原生版 &amp; Netty 版服务端</div>
+
+  <div class="card">
+    <div class="row">
+      <input type="text" id="url" value="ws://127.0.0.1:8888/ws">
+      <button id="connect">连接</button>
+      <button id="disconnect" class="ghost" disabled>断开</button>
+      <span id="status" class="tag off">未连接</span>
+    </div>
+    <div class="hint">
+      原生手写版(回显):<code>ws://127.0.0.1:8889</code>
+      &nbsp;·&nbsp; Netty 聊天室(广播):<code>ws://127.0.0.1:8888/ws</code>
+      &nbsp;·&nbsp; 多开几个标签页连聊天室可互发
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <input type="text" id="msg" placeholder="输入消息,回车发送…" disabled>
+      <button id="send" disabled>发送</button>
+    </div>
+  </div>
+
+  <div class="card"><div id="log"></div></div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let ws = null;
+
+  function log(text, cls) {
+    const d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.textContent = text;
+    $('log').appendChild(d);
+    $('log').scrollTop = $('log').scrollHeight;
+  }
+  function setStatus(on, label) {
+    const s = $('status');
+    s.textContent = label; s.className = 'tag ' + (on ? 'on' : 'off');
+    $('connect').disabled = on; $('disconnect').disabled = !on;
+    $('msg').disabled = !on; $('send').disabled = !on;
+  }
+
+  $('connect').onclick = () => {
+    const url = $('url').value.trim();
+    log('→ 正在连接 ' + url, 'sys');
+    ws = new WebSocket(url);
+    ws.onopen    = () => { setStatus(true, '已连接'); log('✔ 连接成功', 'sys'); };
+    ws.onmessage = e => log(e.data);
+    ws.onclose   = () => { setStatus(false, '未连接'); log('✖ 连接已关闭', 'sys'); };
+    ws.onerror   = () => log('⚠ 连接出错(服务端没启动?地址对吗?)', 'sys');
+  };
+  $('disconnect').onclick = () => ws && ws.close();
+
+  function send() {
+    const v = $('msg').value.trim();
+    if (!v || !ws) return;
+    ws.send(v);
+    log('我: ' + v, 'me');
+    $('msg').value = ''; $('msg').focus();
+  }
+  $('send').onclick = send;
+  $('msg').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+</script>
+</body>
+</html>
