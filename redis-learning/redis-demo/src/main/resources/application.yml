@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+study:
+  redis:
+    host: redis-10803.crce264.ap-east-1-1.ec2.cloud.redislabs.com
+    port: 10803
+    user: default
+    password: X4qBO5fITXwQ840310XeM36GjfhVLaYD
+    timeout: 5000
+    ssl: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
